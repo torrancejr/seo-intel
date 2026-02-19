@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTH TABLES (managed by NextAuth)
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // hashed, for email/password auth
+  tenantId      String
+  role          UserRole  @default(ADMIN)
+  accounts      Account[]
+  sessions      Session[]
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+// ============================================
+// MULTI-TENANT CORE
+// ============================================
+
+model Tenant {
+  id                  String         @id @default(cuid())
+  name                String
+  slug                String         @unique
+  domain              String?
+  websiteUrl          String?
+  businessDescription String?        @db.Text
+  businessContext     Json?
+  logoUrl             String?
+  brandColors         Json?
+  planTier            PlanTier       @default(FREE)
+  users               User[]
+  topics              Topic[]
+  tenantCities        TenantCity[]
+  articles            Article[]
+  articleIdeas        ArticleIdea[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+enum PlanTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+// ============================================
+// TOPICS
+// ============================================
+
+model Topic {
+  id           String        @id @default(cuid())
+  tenantId     String
+  name         String
+  slug         String
+  description  String?
+  isCustom     Boolean       @default(true)
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  articles     Article[]
+  articleIdeas ArticleIdea[]
+  createdAt    DateTime      @default(now())
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+// ============================================
+// CITIES
+// ============================================
+
+model City {
+  id              String       @id @default(cuid())
+  name            String
+  state           String
+  stateCode       String
+  slug            String       @unique
+  population      Int?
+  metroPopulation Int?
+  metroData       Json?
+  legalData       Json?
+  economicData    Json?
+  demographics    Json?
+  lastDataRefresh DateTime?
+  tenantCities    TenantCity[]
+  articles        Article[]
+  articleIdeas    ArticleIdea[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([stateCode])
+}
+
+model TenantCity {
+  tenantId  String
+  cityId    String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([tenantId, cityId])
+  @@index([tenantId])
+  @@index([cityId])
+}
+
+// ============================================
+// ARTICLE IDEAS
+// ============================================
+
+model ArticleIdea {
+  id               String      @id @default(cuid())
+  tenantId         String
+  topicId          String
+  cityId           String?
+  suggestedTitle   String
+  suggestedOutline Json?
+  seoKeywords      String[]
+  estimatedVolume  Int?
+  status           IdeaStatus  @default(SUGGESTED)
+  articleId        String?     @unique
+  tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  topic            Topic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  city             City?       @relation(fields: [cityId], references: [id])
+  article          Article?    @relation(fields: [articleId], references: [id])
+  createdAt        DateTime    @default(now())
+
+  @@index([tenantId, status])
+  @@index([tenantId, topicId])
+}
+
+enum IdeaStatus {
+  SUGGESTED
+  ACCEPTED
+  REJECTED
+  GENERATED
+}
+
+// ============================================
+// ARTICLES
+// ============================================
+
+model Article {
+  id                String        @id @default(cuid())
+  tenantId          String
+  topicId           String
+  cityId            String?
+  title             String
+  slug              String
+  content           String        @db.Text
+  metaTitle         String?
+  metaDescription   String?
+  featuredImageUrl  String?
+  status            ArticleStatus @default(DRAFT)
+  wordCount         Int?
+  readingTimeMin    Int?
+  aiModelUsed       String?
+  aiPromptSnapshot  Json?
+  internalLinks     Json?
+  publishedAt       DateTime?
+  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  topic             Topic         @relation(fields: [topicId], references: [id])
+  city              City?         @relation(fields: [cityId], references: [id])
+  idea              ArticleIdea?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([tenantId, slug])
+  @@unique([tenantId, topicId, cityId])
+  @@index([tenantId, status, publishedAt])
+  @@index([tenantId, topicId])
+  @@index([tenantId, cityId])
+}
+
+enum ArticleStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+// ============================================
+// GENERATION BATCHES
+// ============================================
+
+model GenerationBatch {
+  id              String            @id @default(cuid())
+  tenantId        String
+  topicId         String
+  instructions    String?           @db.Text
+  status          BatchStatus       @default(IN_PROGRESS)
+  totalArticles   Int
+  completedCount  Int               @default(0)
+  failedCount     Int               @default(0)
+  batchItems      GenerationBatchItem[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model GenerationBatchItem {
+  id          String          @id @default(cuid())
+  batchId     String
+  cityId      String
+  articleId   String?
+  status      BatchItemStatus @default(QUEUED)
+  error       String?
+  batch       GenerationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([batchId])
+}
+
+enum BatchStatus {
+  IN_PROGRESS
+  COMPLETE
+  PARTIAL_FAILURE
+}
+
+enum BatchItemStatus {
+  QUEUED
+  GENERATING
+  COMPLETE
+  FAILED
+}
