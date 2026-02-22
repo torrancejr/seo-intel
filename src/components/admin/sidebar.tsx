@@ -11,6 +11,7 @@ import {
   FileText,
   Settings,
   Lightbulb,
+  Layers,
 } from 'lucide-react';
 
 const navigation = [
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Topics', href: '/admin/topics', icon: Tags },
   { name: 'Cities', href: '/admin/cities', icon: MapPin },
   { name: 'Generate', href: '/admin/generate', icon: Sparkles },
+  { name: 'Batch Generate', href: '/admin/batch-generate', icon: Layers },
   { name: 'Ideas', href: '/admin/ideas', icon: Lightbulb },
   { name: 'Articles', href: '/admin/articles', icon: FileText },
   { name: 'Settings', href: '/admin/settings', icon: Settings },

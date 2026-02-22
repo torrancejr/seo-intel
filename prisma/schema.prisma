@@ -88,6 +88,7 @@ model Tenant {
   tenantCities        TenantCity[]
   articles            Article[]
   articleIdeas        ArticleIdea[]
+  generationBatches   GenerationBatch[]
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 }
@@ -103,16 +104,17 @@ enum PlanTier {
 // ============================================
 
 model Topic {
-  id           String        @id @default(cuid())
-  tenantId     String
-  name         String
-  slug         String
-  description  String?
-  isCustom     Boolean       @default(true)
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  articles     Article[]
-  articleIdeas ArticleIdea[]
-  createdAt    DateTime      @default(now())
+  id                String              @id @default(cuid())
+  tenantId          String
+  name              String
+  slug              String
+  description       String?
+  isCustom          Boolean             @default(true)
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  articles          Article[]
+  articleIdeas      ArticleIdea[]
+  generationBatches GenerationBatch[]
+  createdAt         DateTime            @default(now())
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -123,11 +125,11 @@ model Topic {
 // ============================================
 
 model City {
-  id              String       @id @default(cuid())
+  id              String                @id @default(cuid())
   name            String
   state           String
   stateCode       String
-  slug            String       @unique
+  slug            String                @unique
   population      Int?
   metroPopulation Int?
   metroData       Json?
@@ -138,8 +140,9 @@ model City {
   tenantCities    TenantCity[]
   articles        Article[]
   articleIdeas    ArticleIdea[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  batchItems      GenerationBatchItem[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   @@index([stateCode])
 }
@@ -193,29 +196,30 @@ enum IdeaStatus {
 // ============================================
 
 model Article {
-  id                String        @id @default(cuid())
+  id                String                @id @default(cuid())
   tenantId          String
   topicId           String
   cityId            String?
   title             String
   slug              String
-  content           String        @db.Text
+  content           String                @db.Text
   metaTitle         String?
   metaDescription   String?
   featuredImageUrl  String?
-  status            ArticleStatus @default(DRAFT)
+  status            ArticleStatus         @default(DRAFT)
   wordCount         Int?
   readingTimeMin    Int?
   aiModelUsed       String?
   aiPromptSnapshot  Json?
   internalLinks     Json?
   publishedAt       DateTime?
-  tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  topic             Topic         @relation(fields: [topicId], references: [id])
-  city              City?         @relation(fields: [cityId], references: [id])
+  tenant            Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  topic             Topic                 @relation(fields: [topicId], references: [id])
+  city              City?                 @relation(fields: [cityId], references: [id])
   idea              ArticleIdea?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  batchItems        GenerationBatchItem[]
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
 
   @@unique([tenantId, slug])
   @@unique([tenantId, topicId, cityId])
@@ -244,6 +248,8 @@ model GenerationBatch {
   totalArticles   Int
   completedCount  Int               @default(0)
   failedCount     Int               @default(0)
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  topic           Topic             @relation(fields: [topicId], references: [id], onDelete: Cascade)
   batchItems      GenerationBatchItem[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -259,6 +265,8 @@ model GenerationBatchItem {
   status      BatchItemStatus @default(QUEUED)
   error       String?
   batch       GenerationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  city        City            @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  article     Article?        @relation(fields: [articleId], references: [id], onDelete: SetNull)
   startedAt   DateTime?
   completedAt DateTime?
   createdAt   DateTime        @default(now())
