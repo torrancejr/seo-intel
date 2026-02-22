@@ -39,6 +39,7 @@ export default function BatchStatusPage() {
     fetchBatch();
     const interval = setInterval(fetchBatch, 3000); // Poll every 3 seconds
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   const fetchBatch = async () => {

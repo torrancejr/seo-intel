@@ -140,6 +140,11 @@ async function processBatch(batchId: string) {
         preview: false,
       });
 
+      // Type guard to ensure article has an id (not preview mode)
+      if (!article || !('id' in article)) {
+        throw new Error('Article generation failed - no article returned');
+      }
+
       // Update item as complete
       await db.generationBatchItem.update({
         where: { id: item.id },
