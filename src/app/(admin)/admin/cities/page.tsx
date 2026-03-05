@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Check, X } from 'lucide-react';
+import { Search, MapPin, Check, X, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface City {
@@ -26,6 +26,7 @@ export default function CitiesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchCities();
@@ -76,6 +77,37 @@ export default function CitiesPage() {
     }
   };
 
+  const handleRefreshData = async () => {
+    if (!confirm('Refresh data for all selected cities? This may take a few minutes.')) {
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const cityIds = selectedCities.map(c => c.id);
+      const res = await fetch('/api/v1/cities/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cityIds }),
+      });
+
+      if (res.ok) {
+        alert(`Started data refresh for ${cityIds.length} cities. This will run in the background.`);
+        // Refresh the cities list after a delay
+        setTimeout(() => {
+          fetchCities();
+        }, 5000);
+      } else {
+        alert('Failed to start data refresh');
+      }
+    } catch (err) {
+      console.error('Failed to refresh data');
+      alert('Failed to refresh data');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const filteredCities = cities.filter(
     (city) =>
       city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,6 +140,14 @@ export default function CitiesPage() {
             <h2 className="text-lg font-semibold">
               Selected Cities ({selectedCities.length})
             </h2>
+            <button
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
+            </button>
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedCities.map((city) => (
