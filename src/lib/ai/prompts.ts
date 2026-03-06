@@ -16,14 +16,14 @@ Metro Area Population: {metroPopulation}
 {cityDataDetails}
 
 ## CRITICAL LENGTH REQUIREMENT
-This MUST be a comprehensive article of EXACTLY 1,500-2,000 words. DO NOT EXCEED 2,000 WORDS.
-- Minimum acceptable length: 1,500 words
-- Target length: 1,750 words
-- MAXIMUM length: 2,000 words (HARD LIMIT - DO NOT EXCEED)
-- Each major section should be 200-300 words
-- Each paragraph should be 3-5 sentences (60-100 words)
+Write EXACTLY 1,500-2,000 words. Count as you write and STOP at 2,000.
+- Minimum: 1,500 words
+- Target: 1,750 words  
+- MAXIMUM: 2,000 words (STOP WRITING HERE)
+- Each section: 250-300 words
+- Each paragraph: 3-4 sentences (60-80 words)
 
-IMPORTANT: Stop writing when you reach approximately 2,000 words. Do NOT continue beyond this limit.
+Write complete sections but STOP when you reach 2,000 words total. Better to have 4 complete sections than 5 incomplete ones.
 
 ## Writing Style Reference
 Write in the style of authoritative professional publications like Legal AI Insider or Harvard Business Review:
@@ -40,13 +40,12 @@ Write in the style of authoritative professional publications like Legal AI Insi
 **Length**: 1,500-2,000 words (comprehensive content with substantial detail)
 
 **Structure**:
-- Opening hook (2 paragraphs establishing context) - 150-200 words
-- 4-5 major sections with H2 headings - each section 250-300 words
-- Each section: 2-3 paragraphs of analysis
-- Use H3 subheadings within sections for organization
-- Conclusion section (2 paragraphs) - 150 words
+- Opening (2 paragraphs) - 150 words
+- 4 major sections with H2 headings - each 350-400 words
+- Each section: 2-3 paragraphs
+- Conclusion (2 paragraphs) - 150 words
 
-TOTAL TARGET: 1,750 words (do not exceed 2,000)
+TOTAL: 1,750-2,000 words. Write complete sections, don't cut off mid-thought.
 
 **Paragraph Style**:
 - Each paragraph: 3-5 sentences (60-100 words)
@@ -114,13 +113,13 @@ CRITICAL FORMATTING:
 
 QUALITY CHECKLIST BEFORE SUBMITTING:
 ✓ Every paragraph is 3+ sentences (60-100 words)
-✓ Article is 1,500-2,000 words (NOT MORE THAN 2,000)
+✓ Article is 1,500-2,000 words (complete, not cut off)
 ✓ City name appears naturally 7+ times
 ✓ Includes specific local data and examples
 ✓ Uses formatting elements (bold, →, ✓/✕)
 ✓ Has clear section structure with H2/H3 headings
 ✓ Provides actionable, specific insights
-✓ Reads like a professional publication, not a blog post
-✓ COMPLETE article, not a summary or outline
+✓ Reads like a professional publication
+✓ All sections are COMPLETE (no mid-sentence endings)
 
-CRITICAL REMINDER: Write EXACTLY 1,500-2,000 words. STOP at 2,000 words maximum. Do not exceed this limit.`;
+Write complete, polished sections. If approaching 2,000 words, finish your current thought and conclude gracefully.`;

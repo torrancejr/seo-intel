@@ -118,7 +118,7 @@ export default async function ArticlesPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <Link
-                          href={`/blog/${article.slug}`}
+                          href={`/admin/articles/${article.id}/preview`}
                           target="_blank"
                           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                         >

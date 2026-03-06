@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { AlertModal } from '@/components/ui/modal';
 
 interface Topic {
   id: string;
@@ -14,236 +16,367 @@ interface City {
   stateCode: string;
 }
 
+interface BatchItem {
+  id: string;
+  cityId: string;
+  status: 'QUEUED' | 'GENERATING' | 'COMPLETE' | 'FAILED';
+  error?: string;
+  articleId?: string;
+  city: City;
+}
+
+interface Batch {
+  id: string;
+  status: 'IN_PROGRESS' | 'COMPLETE' | 'PARTIAL_FAILURE';
+  totalArticles: number;
+  completedCount: number;
+  failedCount: number;
+  batchItems: BatchItem[];
+}
+
 export default function BatchGeneratePage() {
   const router = useRouter();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState('');
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState('');
+  const [selectedCityIds, setSelectedCityIds] = useState<string[]>([]);
   const [customInstructions, setCustomInstructions] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [batch, setBatch] = useState<Batch | null>(null);
+  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
+  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; variant: 'success' | 'error' | 'info' }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'info',
+  });
 
   useEffect(() => {
     fetchTopics();
     fetchCities();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [pollInterval]);
+
   const fetchTopics = async () => {
     const res = await fetch('/api/v1/topics');
     const data = await res.json();
-    setTopics(data.topics || []);
+    setTopics(data.topics);
   };
 
   const fetchCities = async () => {
     const res = await fetch('/api/v1/tenant-cities');
     const data = await res.json();
-    setCities(data.cities || []);
+    setCities(data.cities);
   };
 
-  const toggleCity = (cityId: string) => {
-    setSelectedCities(prev =>
-      prev.includes(cityId)
-        ? prev.filter(id => id !== cityId)
-        : [...prev, cityId]
-    );
-  };
-
-  const selectAll = () => {
-    const filtered = filteredCities();
-    setSelectedCities(filtered.map(c => c.id));
-  };
-
-  const deselectAll = () => {
-    setSelectedCities([]);
-  };
-
-  const filteredCities = () => {
-    if (!searchQuery) return cities;
-    return cities.filter(city =>
-      city.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      city.stateCode.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const handleCityToggle = (cityId: string) => {
+    if (selectedCityIds.includes(cityId)) {
+      setSelectedCityIds(selectedCityIds.filter(id => id !== cityId));
+    } else {
+      if (selectedCityIds.length >= 8) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Maximum Reached',
+          message: 'Maximum 8 cities allowed per batch',
+          variant: 'info',
+        });
+        return;
+      }
+      setSelectedCityIds([...selectedCityIds, cityId]);
+    }
   };
 
   const handleGenerate = async () => {
-    if (!selectedTopic || selectedCities.length === 0) {
-      alert('Please select a topic and at least one city');
+    if (!selectedTopicId) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Topic Required',
+        message: 'Please select a topic',
+        variant: 'error',
+      });
+      return;
+    }
+    if (selectedCityIds.length === 0) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Cities Required',
+        message: 'Please select at least one city',
+        variant: 'error',
+      });
       return;
     }
 
-    if (selectedCities.length > 50) {
-      alert('Maximum 50 cities per batch');
-      return;
-    }
-
-    setGenerating(true);
-
+    setIsGenerating(true);
     try {
       const res = await fetch('/api/ai/batch-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topicId: selectedTopic,
-          cityIds: selectedCities,
+          topicId: selectedTopicId,
+          cityIds: selectedCityIds,
           customInstructions,
         }),
       });
 
-      const data = await res.json();
-
       if (res.ok) {
-        router.push(`/admin/batch-generate/${data.batchId}`);
+        const data = await res.json();
+        setBatch(data.batch);
+        startPolling(data.batch.id);
       } else {
-        alert(data.error || 'Failed to start batch generation');
+        const data = await res.json();
+        setAlertModal({
+          isOpen: true,
+          title: 'Generation Failed',
+          message: data.error || 'Failed to start batch generation',
+          variant: 'error',
+        });
+        setIsGenerating(false);
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to start batch generation');
-    } finally {
-      setGenerating(false);
+      console.error('Error starting batch:', error);
+      setAlertModal({
+        isOpen: true,
+        title: 'Error',
+        message: 'Failed to start batch generation',
+        variant: 'error',
+      });
+      setIsGenerating(false);
+    }
+  };
+
+  const startPolling = (batchId: string) => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ai/batch-generate/${batchId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBatch(data.batch);
+
+          if (data.batch.status !== 'IN_PROGRESS') {
+            clearInterval(interval);
+            setIsGenerating(false);
+          }
+        }
+      } catch (error) {
+        console.error('Error polling batch:', error);
+      }
+    }, 3000);
+
+    setPollInterval(interval);
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'COMPLETE':
+        return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'FAILED':
+        return <XCircle className="h-5 w-5 text-red-600" />;
+      case 'GENERATING':
+        return <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />;
+      default:
+        return <Clock className="h-5 w-5 text-gray-400" />;
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Batch Generate Articles</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Batch Generate</h1>
         <p className="text-muted-foreground mt-2">
-          Generate articles for multiple cities at once (max 50 per batch)
+          Generate multiple articles at once (1 topic × multiple cities)
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Configuration */}
+      {!batch ? (
         <div className="space-y-6">
+          {/* Topic Selection */}
           <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="text-xl font-semibold mb-4">Configuration</h2>
-            
-            <div className="space-y-4">
-              {/* Topic Selection */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Topic <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={selectedTopic}
-                  onChange={(e) => setSelectedTopic(e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled={generating}
-                >
-                  <option value="">Select a topic...</option>
-                  {topics.map((topic) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Custom Instructions */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Custom Instructions (Optional)
-                </label>
-                <textarea
-                  value={customInstructions}
-                  onChange={(e) => setCustomInstructions(e.target.value)}
-                  placeholder="Add any specific requirements..."
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px]"
-                  disabled={generating}
-                />
-              </div>
-            </div>
+            <h2 className="text-lg font-semibold mb-4">Step 1: Select Topic</h2>
+            <select
+              value={selectedTopicId}
+              onChange={(e) => setSelectedTopicId(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-lg"
+              disabled={isGenerating}
+            >
+              <option value="">Choose a topic...</option>
+              {topics.map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {topic.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Summary */}
+          {/* City Selection */}
           <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="text-xl font-semibold mb-4">Summary</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Selected Cities:</span>
-                <span className="font-semibold">{selectedCities.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Estimated Time:</span>
-                <span className="font-semibold">
-                  {selectedCities.length > 0 ? `~${Math.ceil(selectedCities.length * 0.5)} min` : '-'}
-                </span>
-              </div>
+            <h2 className="text-lg font-semibold mb-4">
+              Step 2: Select Cities (max 8)
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {cities.map((city) => (
+                <button
+                  key={city.id}
+                  onClick={() => handleCityToggle(city.id)}
+                  disabled={isGenerating}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    selectedCityIds.includes(city.id)
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:bg-muted'
+                  } disabled:opacity-50`}
+                >
+                  <div className="font-medium text-sm">{city.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {city.stateCode}
+                  </div>
+                </button>
+              ))}
             </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              Selected: {selectedCityIds.length} / 8
+            </p>
+          </div>
 
-            <button
-              onClick={handleGenerate}
-              disabled={generating || !selectedTopic || selectedCities.length === 0}
-              className="w-full mt-6 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {generating ? 'Starting Batch...' : `Generate ${selectedCities.length} Articles`}
-            </button>
+          {/* Custom Instructions */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-semibold mb-4">
+              Step 3: Custom Instructions (Optional)
+            </h2>
+            <textarea
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
+              placeholder="Add any specific instructions for the AI..."
+              className="w-full px-3 py-2 border border-border rounded-lg"
+              rows={4}
+              disabled={isGenerating}
+            />
+          </div>
+
+          {/* Generate Button */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Ready to Generate</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedCityIds.length} article{selectedCityIds.length !== 1 ? 's' : ''} will be generated
+                </p>
+              </div>
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating || !selectedTopicId || selectedCityIds.length === 0}
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isGenerating && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isGenerating ? 'Starting...' : 'Generate Articles'}
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Right Column - City Selection */}
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Select Cities</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={selectAll}
-                className="text-sm text-primary hover:underline"
-                disabled={generating}
-              >
-                Select All
-              </button>
-              <span className="text-muted-foreground">|</span>
-              <button
-                onClick={deselectAll}
-                className="text-sm text-primary hover:underline"
-                disabled={generating}
-              >
-                Deselect All
-              </button>
+      ) : (
+        <div className="space-y-6">
+          {/* Progress Overview */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Generation Progress</h2>
+              <span className={`px-3 py-1 rounded-full text-sm ${
+                batch.status === 'COMPLETE' ? 'bg-green-100 text-green-800' :
+                batch.status === 'PARTIAL_FAILURE' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-blue-100 text-blue-800'
+              }`}>
+                {batch.status.replace('_', ' ')}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Progress</span>
+                <span>{batch.completedCount + batch.failedCount} / {batch.totalArticles}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{
+                    width: `${((batch.completedCount + batch.failedCount) / batch.totalArticles) * 100}%`
+                  }}
+                />
+              </div>
+              <div className="flex gap-4 text-sm">
+                <span className="text-green-600">✓ {batch.completedCount} completed</span>
+                {batch.failedCount > 0 && (
+                  <span className="text-red-600">✗ {batch.failedCount} failed</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Search */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search cities..."
-            className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-4"
-            disabled={generating}
-          />
-
-          {/* City List */}
-          <div className="max-h-[600px] overflow-y-auto space-y-2">
-            {filteredCities().map((city) => (
-              <label
-                key={city.id}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedCities.includes(city.id)}
-                  onChange={() => toggleCity(city.id)}
-                  disabled={generating}
-                  className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                />
-                <span className="text-sm font-medium">
-                  {city.name}, {city.stateCode}
-                </span>
-              </label>
-            ))}
+          {/* Individual Items */}
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h3 className="font-semibold mb-4">Articles</h3>
+            <div className="space-y-3">
+              {batch.batchItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-4 rounded-lg border border-border"
+                >
+                  <div className="flex items-center gap-3">
+                    {getStatusIcon(item.status)}
+                    <div>
+                      <div className="font-medium">
+                        {item.city?.name || 'Unknown'}, {item.city?.stateCode || ''}
+                      </div>
+                      {item.error && (
+                        <div className="text-xs text-red-600 mt-1">{item.error}</div>
+                      )}
+                    </div>
+                  </div>
+                  {item.articleId && (
+                    <a
+                      href={`/admin/articles/${item.articleId}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      View Article
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {filteredCities().length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No cities found
+          {/* Actions */}
+          {batch.status !== 'IN_PROGRESS' && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setBatch(null);
+                  setSelectedTopicId('');
+                  setSelectedCityIds([]);
+                  setCustomInstructions('');
+                }}
+                className="px-6 py-2 border border-border rounded-lg hover:bg-muted"
+              >
+                Generate Another Batch
+              </button>
+              <button
+                onClick={() => router.push('/admin/articles')}
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+              >
+                View All Articles
+              </button>
             </div>
           )}
         </div>
-      </div>
+      )}
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        variant={alertModal.variant}
+      />
     </div>
   );
 }

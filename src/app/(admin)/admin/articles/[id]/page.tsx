@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Download } from 'lucide-react';
 
 interface Article {
   id: string;
@@ -119,6 +120,34 @@ export default function ArticleEditorPage() {
     }
   };
 
+  const handleDownload = () => {
+    if (!article) return;
+
+    // Create markdown content with frontmatter
+    const markdown = `---
+title: ${article.title}
+metaTitle: ${metaTitle}
+metaDescription: ${metaDescription}
+topic: ${article.topic.name}
+city: ${article.city?.name}, ${article.city?.stateCode}
+status: ${status}
+wordCount: ${content.split(/\s+/).filter(Boolean).length}
+---
+
+${content}`;
+
+    // Create blob and download
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${article.slug}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -207,6 +236,14 @@ export default function ArticleEditorPage() {
               <option value="PUBLISHED">Published</option>
               <option value="ARCHIVED">Archived</option>
             </select>
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              title="Download as Markdown"
+            >
+              <Download className="h-4 w-4" />
+              Download
+            </button>
             <button
               onClick={() => handleSave(false)}
               disabled={saving}

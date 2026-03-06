@@ -45,7 +45,7 @@ export const AI_MODEL =
     ? process.env.BEDROCK_BLOG_MODEL || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0' // Claude Sonnet 4.5 (inference profile)
     : 'claude-3-5-sonnet-20241022';
 
-export const AI_MAX_TOKENS = 6000; // Reduced to constrain article length to ~2,000 words
+export const AI_MAX_TOKENS = 5000; // Further reduced to strictly constrain to ~1,500-2,000 words
 export const AI_TEMPERATURE = 0.7; // Higher temperature for more creative, longer output
 
 interface Message {

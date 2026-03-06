@@ -1,14 +1,14 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { NextResponse } from 'next/server';
 
 export async function GET(
-  request: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await auth();
-    if (!session) {
+    if (!session?.user?.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -18,22 +18,16 @@ export async function GET(
         tenantId: session.user.tenantId,
       },
       include: {
-        topic: {
-          select: {
-            name: true,
-          },
-        },
         batchItems: {
           include: {
-            city: {
+            city: true,
+            article: {
               select: {
-                name: true,
-                stateCode: true,
+                id: true,
+                title: true,
+                wordCount: true,
               },
             },
-          },
-          orderBy: {
-            createdAt: 'asc',
           },
         },
       },
@@ -43,11 +37,28 @@ export async function GET(
       return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ batch });
+    return NextResponse.json({
+      success: true,
+      batch: {
+        id: batch.id,
+        status: batch.status,
+        totalArticles: batch.totalArticles,
+        completedCount: batch.completedCount,
+        failedCount: batch.failedCount,
+        batchItems: batch.batchItems.map(item => ({
+          id: item.id,
+          cityId: item.cityId,
+          status: item.status,
+          error: item.error,
+          articleId: item.article?.id,
+          city: item.city,
+        })),
+      },
+    });
   } catch (error: any) {
-    console.error('Error fetching batch:', error);
+    console.error('Error fetching batch status:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch batch' },
+      { error: error.message || 'Failed to fetch batch status' },
       { status: 500 }
     );
   }

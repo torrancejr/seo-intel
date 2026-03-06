@@ -157,9 +157,9 @@ Begin writing the full article now:`
       throw new Error(`Article is too short (${actualWordCount} words). Minimum 1,200 words required. Please try regenerating.`);
     }
     
-    if (actualWordCount > 2200) {
+    if (actualWordCount > 2500) {
       console.error('❌ Article too long:', actualWordCount, 'words');
-      throw new Error(`Article is too long (${actualWordCount} words). Maximum 2,200 words allowed. Please try regenerating with stricter length constraints.`);
+      throw new Error(`Article is too long (${actualWordCount} words). Maximum 2,500 words allowed. The AI generated too much content. Please try regenerating.`);
     }
     
     if (actualWordCount > 2000) {
