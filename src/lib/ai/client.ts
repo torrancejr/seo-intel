@@ -42,10 +42,11 @@ function getBedrockClient() {
 
 export const AI_MODEL = 
   getAIProvider() === 'bedrock' 
-    ? process.env.BEDROCK_BLOG_MODEL || 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
+    ? process.env.BEDROCK_BLOG_MODEL || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0' // Claude Sonnet 4.5 (inference profile)
     : 'claude-3-5-sonnet-20241022';
 
-export const AI_MAX_TOKENS = 4096;
+export const AI_MAX_TOKENS = 6000; // Reduced to constrain article length to ~2,000 words
+export const AI_TEMPERATURE = 0.7; // Higher temperature for more creative, longer output
 
 interface Message {
   role: 'user' | 'assistant';
@@ -56,6 +57,7 @@ interface GenerateOptions {
   model: string;
   max_tokens: number;
   messages: Message[];
+  temperature?: number;
 }
 
 interface GenerateResponse {
@@ -76,6 +78,7 @@ export async function generateContent(options: GenerateOptions): Promise<Generat
       anthropic_version: 'bedrock-2023-05-31',
       max_tokens: options.max_tokens,
       messages: options.messages,
+      temperature: options.temperature || 1.0,
     };
 
     const command = new InvokeModelCommand({
@@ -100,6 +103,7 @@ export async function generateContent(options: GenerateOptions): Promise<Generat
       model: options.model,
       max_tokens: options.max_tokens,
       messages: options.messages,
+      temperature: options.temperature || 1.0,
     });
 
     return {

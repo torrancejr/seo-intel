@@ -1,27 +1,23 @@
-/**
- * Data Enrichment Orchestrator
- * Combines Census and BLS data to enrich city records
- */
+// City Data Enrichment Orchestrator
+// Combines data from Census API, BLS API, and other sources
 
-import { fetchCensusData } from './census-api';
-import { fetchBLSData } from './bls-api';
 import { db } from '../db';
+import { fetchCensusData } from './census-client';
+import { fetchBLSData } from './bls-client';
 
-export interface EnrichedCityData {
-  demographics: {
-    population?: number;
-    medianAge?: number;
-    collegeEducated?: number;
+interface EnrichmentResult {
+  cityId: string;
+  cityName: string;
+  success: boolean;
+  error?: string;
+  dataUpdated: {
+    demographics?: boolean;
+    economicData?: boolean;
+    metroData?: boolean;
   };
-  economicData: {
-    medianIncome?: number;
-    unemploymentRate?: number;
-    medianHomeValue?: number;
-  };
-  lastDataRefresh: Date;
 }
 
-export async function enrichCityData(cityId: string): Promise<EnrichedCityData | null> {
+export async function enrichCity(cityId: string): Promise<EnrichmentResult> {
   try {
     // Fetch city from database
     const city = await db.city.findUnique({
@@ -29,114 +25,121 @@ export async function enrichCityData(cityId: string): Promise<EnrichedCityData |
     });
 
     if (!city) {
-      throw new Error(`City ${cityId} not found`);
+      return {
+        cityId,
+        cityName: 'Unknown',
+        success: false,
+        error: 'City not found',
+        dataUpdated: {},
+      };
     }
 
-    console.log(`Enriching data for ${city.name}, ${city.stateCode}...`);
+    console.log(`🔄 Enriching data for ${city.name}, ${city.stateCode}...`);
 
-    // Fetch data from both APIs in parallel
+    // Fetch data from external APIs
     const [censusData, blsData] = await Promise.all([
       fetchCensusData(city.name, city.stateCode),
       fetchBLSData(city.name, city.stateCode),
     ]);
 
-    // Combine the data
-    const enrichedData: EnrichedCityData = {
-      demographics: {
-        population: censusData.population,
-        medianAge: censusData.medianAge,
-        collegeEducated: censusData.collegeEducated,
-      },
-      economicData: {
-        medianIncome: censusData.medianIncome,
-        unemploymentRate: blsData.unemploymentRate,
-        medianHomeValue: censusData.medianHomeValue,
-      },
+    // Prepare update data
+    const updateData: any = {
       lastDataRefresh: new Date(),
     };
 
-    // Update city in database
+    const dataUpdated: EnrichmentResult['dataUpdated'] = {};
+
+    // Update demographics if we got Census data
+    if (Object.keys(censusData).length > 0) {
+      updateData.demographics = {
+        medianAge: censusData.medianAge,
+        collegeEducated: censusData.collegeEducated,
+        householdSize: censusData.householdSize,
+        source: 'US Census Bureau ACS 5-Year',
+        lastUpdated: new Date().toISOString(),
+      };
+      dataUpdated.demographics = true;
+    }
+
+    // Update economic data if we got BLS data
+    if (Object.keys(blsData).length > 0) {
+      const existing = (city.economicData as any) || {};
+      updateData.economicData = {
+        ...existing,
+        unemploymentRate: blsData.unemploymentRate,
+        averageWage: blsData.averageWage,
+        laborForceSize: blsData.laborForceSize,
+        source: 'Bureau of Labor Statistics',
+        lastUpdated: new Date().toISOString(),
+      };
+      dataUpdated.economicData = true;
+    }
+
+    // Update population if we got it from Census
+    if (censusData.population) {
+      updateData.population = censusData.population;
+    }
+
+    // Update metro data with income info
+    if (censusData.medianIncome) {
+      const existing = (city.metroData as any) || {};
+      updateData.metroData = {
+        ...existing,
+        medianIncome: censusData.medianIncome,
+        lastUpdated: new Date().toISOString(),
+      };
+      dataUpdated.metroData = true;
+    }
+
+    // Save to database
     await db.city.update({
       where: { id: cityId },
-      data: {
-        population: censusData.population,
-        demographics: enrichedData.demographics,
-        economicData: enrichedData.economicData,
-        lastDataRefresh: enrichedData.lastDataRefresh,
-      },
+      data: updateData,
     });
 
     console.log(`✅ Successfully enriched ${city.name}, ${city.stateCode}`);
 
-    return enrichedData;
-  } catch (error) {
-    console.error(`Error enriching city ${cityId}:`, error);
-    return null;
+    return {
+      cityId,
+      cityName: `${city.name}, ${city.stateCode}`,
+      success: true,
+      dataUpdated,
+    };
+  } catch (error: any) {
+    console.error(`❌ Error enriching city ${cityId}:`, error);
+    return {
+      cityId,
+      cityName: 'Unknown',
+      success: false,
+      error: error.message,
+      dataUpdated: {},
+    };
   }
 }
 
-export async function enrichAllCities(): Promise<{
-  success: number;
-  failed: number;
-  total: number;
-}> {
-  const cities = await db.city.findMany();
-  
-  let success = 0;
-  let failed = 0;
+export async function enrichMultipleCities(cityIds: string[]): Promise<EnrichmentResult[]> {
+  const results: EnrichmentResult[] = [];
 
-  console.log(`Starting enrichment for ${cities.length} cities...`);
-
-  for (const city of cities) {
-    const result = await enrichCityData(city.id);
-    
-    if (result) {
-      success++;
-    } else {
-      failed++;
-    }
-
-    // Rate limiting: wait 1 second between requests
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-
-  console.log(`Enrichment complete: ${success} succeeded, ${failed} failed`);
-
-  return {
-    success,
-    failed,
-    total: cities.length,
-  };
-}
-
-export async function enrichCitiesByIds(cityIds: string[]): Promise<{
-  success: number;
-  failed: number;
-  total: number;
-}> {
-  let success = 0;
-  let failed = 0;
-
-  console.log(`Starting enrichment for ${cityIds.length} cities...`);
-
+  // Process cities sequentially to avoid rate limiting
   for (const cityId of cityIds) {
-    const result = await enrichCityData(cityId);
+    const result = await enrichCity(cityId);
+    results.push(result);
     
-    if (result) {
-      success++;
-    } else {
-      failed++;
-    }
-
-    // Rate limiting: wait 1 second between requests
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Add a small delay between requests to respect API rate limits
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  console.log(`Enrichment complete: ${success} succeeded, ${failed} failed`);
+  return results;
+}
 
-  return {
-    success,
-    failed,
-    total: cityIds.length,
-  };
+export async function enrichAllTenantCities(tenantId: string): Promise<EnrichmentResult[]> {
+  // Get all cities for this tenant
+  const tenantCities = await db.tenantCity.findMany({
+    where: { tenantId },
+    include: { city: true },
+  });
+
+  const cityIds = tenantCities.map(tc => tc.cityId);
+  
+  return enrichMultipleCities(cityIds);
 }

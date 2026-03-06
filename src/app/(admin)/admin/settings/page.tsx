@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [businessDescription, setBusinessDescription] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [businessContext, setBusinessContext] = useState<any>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -35,6 +37,7 @@ export default function SettingsPage() {
         setWebsiteUrl(data.tenant.websiteUrl || '');
         setBusinessDescription(data.tenant.businessDescription || '');
         setLogoUrl(data.tenant.logoUrl || '');
+        setBusinessContext(data.tenant.businessContext || null);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -70,6 +73,38 @@ export default function SettingsPage() {
       alert('Failed to save settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAnalyzeWebsite = async () => {
+    if (!websiteUrl) {
+      alert('Please enter a website URL first');
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const res = await fetch('/api/ai/analyze-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ websiteUrl }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setBusinessContext(data.analysis);
+        setBusinessDescription(
+          `${data.analysis.businessType} specializing in ${data.analysis.keyServices.join(', ')}. Target audience: ${data.analysis.targetAudience}.`
+        );
+        alert('Website analyzed successfully! Business description has been updated.');
+      } else {
+        alert('Failed to analyze website');
+      }
+    } catch (error) {
+      console.error('Error analyzing website:', error);
+      alert('Failed to analyze website');
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -113,13 +148,26 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium mb-2">
                 Website URL
               </label>
-              <input
-                type="url"
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg"
-                placeholder="https://example.com"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-border rounded-lg"
+                  placeholder="https://example.com"
+                />
+                <button
+                  type="button"
+                  onClick={handleAnalyzeWebsite}
+                  disabled={analyzing || !websiteUrl}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {analyzing ? 'Analyzing...' : 'Analyze Website'}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                AI will analyze your website to extract business context and suggest topics
+              </p>
             </div>
 
             <div>
@@ -137,6 +185,32 @@ export default function SettingsPage() {
                 This helps the AI generate more relevant content for your business
               </p>
             </div>
+
+            {businessContext && (
+              <div className="p-4 bg-muted rounded-lg">
+                <h3 className="text-sm font-semibold mb-2">AI-Extracted Business Context</h3>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Business Type:</span>{' '}
+                    <span className="font-medium">{businessContext.businessType}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Industry:</span>{' '}
+                    <span className="font-medium">{businessContext.industry}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Target Audience:</span>{' '}
+                    <span className="font-medium">{businessContext.targetAudience}</span>
+                  </div>
+                  {businessContext.keyServices && businessContext.keyServices.length > 0 && (
+                    <div>
+                      <span className="text-muted-foreground">Key Services:</span>{' '}
+                      <span className="font-medium">{businessContext.keyServices.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

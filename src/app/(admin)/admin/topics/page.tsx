@@ -19,6 +19,8 @@ export default function TopicsPage() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
 
   useEffect(() => {
     fetchTopics();
@@ -81,6 +83,52 @@ export default function TopicsPage() {
     }
   };
 
+  const handleSuggestTopics = async () => {
+    setIsSuggesting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/ai/suggest-topics', {
+        method: 'POST',
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to suggest topics');
+        return;
+      }
+
+      setSuggestedTopics(data.topics);
+    } catch (err) {
+      setError('Failed to suggest topics. Make sure you have analyzed your website in Settings first.');
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+
+  const handleAddSuggestedTopic = async (topicName: string) => {
+    setError('');
+    try {
+      const res = await fetch('/api/v1/topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: topicName }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to add topic');
+        return;
+      }
+
+      setTopics([data.topic, ...topics]);
+      setSuggestedTopics(suggestedTopics.filter(t => t !== topicName));
+    } catch (err) {
+      setError('Failed to add topic');
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setInputValue('');
@@ -98,10 +146,21 @@ export default function TopicsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Topics</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your content topics. Add topics to organize your articles.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Topics</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your content topics. Add topics to organize your articles.
+            </p>
+          </div>
+          <button
+            onClick={handleSuggestTopics}
+            disabled={isSuggesting}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isSuggesting ? 'Suggesting...' : 'Suggest Topics'}
+          </button>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-6">
@@ -181,6 +240,27 @@ export default function TopicsPage() {
           )}
         </div>
       </div>
+
+      {suggestedTopics.length > 0 && (
+        <div className="rounded-2xl border border-primary/50 bg-primary/5 p-6">
+          <h2 className="text-lg font-semibold mb-4">AI-Suggested Topics</h2>
+          <div className="flex flex-wrap gap-2">
+            {suggestedTopics.map((topic, index) => (
+              <button
+                key={index}
+                onClick={() => handleAddSuggestedTopic(topic)}
+                className="flex items-center gap-2 rounded-full bg-background border border-border px-4 py-2 text-sm hover:bg-muted transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>{topic}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Click any topic to add it to your list
+          </p>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-card p-6">
         <h2 className="text-lg font-semibold mb-2">Tips</h2>

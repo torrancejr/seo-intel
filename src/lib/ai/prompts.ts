@@ -15,9 +15,19 @@ Population: {population}
 Metro Area Population: {metroPopulation}
 {cityDataDetails}
 
+## CRITICAL LENGTH REQUIREMENT
+This MUST be a comprehensive article of EXACTLY 1,500-2,000 words. DO NOT EXCEED 2,000 WORDS.
+- Minimum acceptable length: 1,500 words
+- Target length: 1,750 words
+- MAXIMUM length: 2,000 words (HARD LIMIT - DO NOT EXCEED)
+- Each major section should be 200-300 words
+- Each paragraph should be 3-5 sentences (60-100 words)
+
+IMPORTANT: Stop writing when you reach approximately 2,000 words. Do NOT continue beyond this limit.
+
 ## Writing Style Reference
 Write in the style of authoritative professional publications like Legal AI Insider or Harvard Business Review:
-- Long-form, substantive paragraphs (4-8 sentences each)
+- Long-form, substantive paragraphs (4-8 sentences each, 80-150 words per paragraph)
 - Conversational but authoritative tone
 - Deep analysis with specific examples
 - Strategic use of formatting (bold for emphasis, → for key points, ✓/✕ for comparisons)
@@ -27,18 +37,19 @@ Write in the style of authoritative professional publications like Legal AI Insi
 
 ## Content Requirements
 
-**Length**: 2,500-3,500 words (this is LONG-FORM content)
+**Length**: 1,500-2,000 words (comprehensive content with substantial detail)
 
 **Structure**:
-- Opening hook (2-3 paragraphs establishing context and stakes)
-- 6-8 major sections with H2 headings
-- Each section: 3-5 paragraphs of substantial analysis
+- Opening hook (2 paragraphs establishing context) - 150-200 words
+- 4-5 major sections with H2 headings - each section 250-300 words
+- Each section: 2-3 paragraphs of analysis
 - Use H3 subheadings within sections for organization
-- Include "In This Article" table of contents after intro
-- Conclusion section (2-3 paragraphs)
+- Conclusion section (2 paragraphs) - 150 words
+
+TOTAL TARGET: 1,750 words (do not exceed 2,000)
 
 **Paragraph Style**:
-- Each paragraph: 4-8 sentences minimum
+- Each paragraph: 3-5 sentences (60-100 words)
 - Start with a clear topic sentence
 - Develop the idea with examples, data, or analysis
 - Connect paragraphs with smooth transitions
@@ -50,7 +61,7 @@ Write in the style of authoritative professional publications like Legal AI Insi
 - Reference local context: neighborhoods, demographics, economic factors
 - Use specific numbers from the city data provided
 - Make comparisons to state or national averages when relevant
-- Include at least 8-10 city-specific data points across the article
+- Include at least 5-7 city-specific data points across the article
 - Make it clear this is written FOR {cityName} residents/businesses
 
 **Tone and Voice**:
@@ -78,32 +89,38 @@ Write in the style of authoritative professional publications like Legal AI Insi
 - Overly promotional language
 - Unsubstantiated claims
 - Corporate buzzwords
+- STOPPING EARLY - write the FULL article
 
 **SEO Requirements**:
 - Meta title: 55-60 characters, include {cityName}
 - Meta description: 150-155 characters, compelling with CTA
 - Naturally incorporate {cityName} throughout (but don't force it)
 
-Return ONLY a valid JSON object with this exact structure:
-{
-  "metaTitle": "Compelling SEO title with city name (55-60 chars)",
-  "metaDescription": "Engaging meta description with CTA (150-155 chars)",
-  "content": "Full article in markdown format with properly escaped newlines",
-  "wordCount": 2800
-}
+Return your response in the following format with clear delimiters:
+
+---META_TITLE---
+[Your meta title here - 55-60 characters, include {cityName}]
+---META_DESCRIPTION---
+[Your meta description here - 150-155 characters, compelling with CTA]
+---CONTENT---
+[Your full article content in markdown format - 1,500-2,000 words]
+---END---
 
 CRITICAL FORMATTING:
-- Return ONLY the JSON object, no other text
-- Properly escape all newlines (\\n) and quotes in the content field
-- Do not wrap JSON in markdown code blocks
-- Ensure content field contains valid markdown with H2/H3 headings
+- Use the exact delimiter format shown above
+- Do not include any other text outside the delimiters
+- The content section should contain the COMPLETE 1,500-2,000 word article in markdown
+- Use proper markdown formatting with H2/H3 headings
 
-QUALITY CHECKLIST:
-✓ Every paragraph is 4+ sentences
-✓ Article is 2,500+ words
-✓ City name appears naturally 10+ times
+QUALITY CHECKLIST BEFORE SUBMITTING:
+✓ Every paragraph is 3+ sentences (60-100 words)
+✓ Article is 1,500-2,000 words (NOT MORE THAN 2,000)
+✓ City name appears naturally 7+ times
 ✓ Includes specific local data and examples
 ✓ Uses formatting elements (bold, →, ✓/✕)
 ✓ Has clear section structure with H2/H3 headings
 ✓ Provides actionable, specific insights
-✓ Reads like a professional publication, not a blog post`;
+✓ Reads like a professional publication, not a blog post
+✓ COMPLETE article, not a summary or outline
+
+CRITICAL REMINDER: Write EXACTLY 1,500-2,000 words. STOP at 2,000 words maximum. Do not exceed this limit.`;

@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import Link from 'next/link';
 import { FileText, Eye } from 'lucide-react';
+import { DeleteAllArticlesButton } from '@/components/admin/delete-all-articles-button';
 
 async function getArticles(tenantId: string) {
   return db.article.findMany({
@@ -34,12 +35,15 @@ export default async function ArticlesPage() {
             Manage your generated articles
           </p>
         </div>
-        <Link
-          href="/admin/generate"
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          Generate New Article
-        </Link>
+        <div className="flex items-center gap-3">
+          {articles.length > 0 && <DeleteAllArticlesButton />}
+          <Link
+            href="/admin/generate"
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Generate New Article
+          </Link>
+        </div>
       </div>
 
       {articles.length === 0 ? (
@@ -112,22 +116,21 @@ export default async function ArticlesPage() {
                       <span className="text-sm">{article.wordCount}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/blog/${article.slug}`}
+                          target="_blank"
+                          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View
+                        </Link>
                         <Link
                           href={`/admin/articles/${article.id}`}
                           className="text-sm text-primary hover:underline"
                         >
                           Edit
                         </Link>
-                        {article.status === 'PUBLISHED' && (
-                          <Link
-                            href={`/blog/${article.slug}`}
-                            target="_blank"
-                            className="text-sm text-muted-foreground hover:text-foreground"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        )}
                       </div>
                     </td>
                   </tr>
