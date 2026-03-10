@@ -9,7 +9,7 @@ console.log('🔧 Module Load - AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_
 
 // Read AI provider dynamically
 function getAIProvider() {
-  const provider = process.env.AI_PROVIDER || 'anthropic';
+  const provider = process.env.AI_PROVIDER || 'bedrock';
   console.log('🔍 getAIProvider() called, returning:', provider);
   return provider;
 }
@@ -18,9 +18,11 @@ function getAIProvider() {
 let anthropicClient: Anthropic | null = null;
 function getAnthropicClient() {
   if (!anthropicClient) {
-    anthropicClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY || '',
-    });
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY is not set. Set AI_PROVIDER=bedrock to use AWS Bedrock instead.');
+    }
+    anthropicClient = new Anthropic({ apiKey });
   }
   return anthropicClient;
 }
