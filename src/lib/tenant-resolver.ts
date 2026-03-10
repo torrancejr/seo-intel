@@ -23,7 +23,7 @@ export interface ResolvedTenant {
  */
 export async function resolveTenant(): Promise<ResolvedTenant | null> {
   const headersList = await headers();
-  const host = headersList.get('host') || '';
+  const host = headersList.get('x-forwarded-host') || headersList.get('host') || '';
   
   // Remove port if present (localhost:3000 -> localhost)
   const hostname = host.split(':')[0];

@@ -1,5 +1,4 @@
-import { headers } from 'next/headers';
-import { db } from '@/lib/db';
+import { resolveTenant, getTenantId as getTenantIdFromResolver } from '@/lib/tenant-resolver';
 
 export interface Tenant {
   id: string;
@@ -13,45 +12,23 @@ export interface Tenant {
 }
 
 /**
- * Gets the current tenant from request headers (set by middleware)
+ * Gets the current tenant from hostname resolution
  * Use this in Server Components and API Routes
  */
 export async function getTenant(): Promise<Tenant | null> {
-  const headersList = await headers();
-  const tenantId = headersList.get('x-tenant-id');
-  
-  if (!tenantId) {
-    return null;
-  }
-  
-  const tenant = await db.tenant.findUnique({
-    where: { id: tenantId },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      domain: true,
-      websiteUrl: true,
-      businessDescription: true,
-      logoUrl: true,
-      planTier: true,
-    },
-  });
-  
-  return tenant;
+  return await resolveTenant();
 }
 
 /**
- * Gets just the tenant ID from headers
+ * Gets just the tenant ID from hostname
  * Faster alternative when you only need the ID
  */
 export async function getTenantId(): Promise<string | null> {
-  const headersList = await headers();
-  return headersList.get('x-tenant-id');
+  return await getTenantIdFromResolver();
 }
 
 /**
- * Gets tenant info from headers without database query
+ * Gets tenant info from hostname resolution
  * Useful for quick checks
  */
 export async function getTenantFromHeaders(): Promise<{
@@ -59,14 +36,15 @@ export async function getTenantFromHeaders(): Promise<{
   slug: string;
   name: string;
 } | null> {
-  const headersList = await headers();
-  const id = headersList.get('x-tenant-id');
-  const slug = headersList.get('x-tenant-slug');
-  const name = headersList.get('x-tenant-name');
+  const tenant = await resolveTenant();
   
-  if (!id || !slug || !name) {
+  if (!tenant) {
     return null;
   }
   
-  return { id, slug, name };
+  return {
+    id: tenant.id,
+    slug: tenant.slug,
+    name: tenant.name,
+  };
 }
