@@ -9,8 +9,8 @@ console.log('🔧 Module Load - AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_
 
 // Read AI provider dynamically
 function getAIProvider() {
-  const provider = process.env.AI_PROVIDER || 'bedrock';
-  console.log('🔍 getAIProvider() called, returning:', provider);
+  const provider = (process.env.AI_PROVIDER || 'bedrock').trim();
+  console.log('🔍 getAIProvider() called, returning:', JSON.stringify(provider));
   return provider;
 }
 
