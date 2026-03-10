@@ -475,7 +475,7 @@ export default function SettingsPage() {
                 cname.vercel-dns.com
               </code>
               <p className="text-xs text-blue-800 mt-2">
-                Or if using an apex domain (no subdomain), use A records pointing to Vercel's IP addresses.
+                Or if using an apex domain (no subdomain), use A records pointing to Vercel&apos;s IP addresses.
               </p>
             </div>
           </div>
@@ -598,7 +598,7 @@ export default function SettingsPage() {
                     API Key Created Successfully!
                   </p>
                   <p className="text-xs text-green-700 mb-3">
-                    Make sure to copy your API key now. You won't be able to see it again!
+                    Make sure to copy your API key now. You won&apos;t be able to see it again!
                   </p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-green-200 font-mono break-all">
