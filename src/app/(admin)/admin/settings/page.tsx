@@ -13,6 +13,17 @@ interface TenantSettings {
   logoUrl: string | null;
 }
 
+interface ApiKey {
+  id: string;
+  name: string;
+  key: string;
+  keyPreview: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<TenantSettings | null>(null);
@@ -27,9 +38,18 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [businessContext, setBusinessContext] = useState<any>(null);
+  
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [showNewKeyModal, setShowNewKeyModal] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyExpiry, setNewKeyExpiry] = useState('never');
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [creatingKey, setCreatingKey] = useState(false);
 
   useEffect(() => {
     fetchSettings();
+    fetchApiKeys();
   }, []);
 
   const fetchSettings = async () => {
@@ -97,6 +117,99 @@ export default function SettingsPage() {
 
   const handleRemoveDomain = (domainToRemove: string) => {
     setCustomDomains(customDomains.filter(d => d !== domainToRemove));
+  };
+
+  const fetchApiKeys = async () => {
+    try {
+      const res = await fetch('/api/v1/api-keys');
+      if (res.ok) {
+        const data = await res.json();
+        setApiKeys(data.apiKeys);
+      }
+    } catch (error) {
+      console.error('Error fetching API keys:', error);
+    }
+  };
+
+  const handleCreateApiKey = async () => {
+    if (!newKeyName.trim()) {
+      alert('Please enter a name for the API key');
+      return;
+    }
+
+    setCreatingKey(true);
+    try {
+      const expiresInDays = newKeyExpiry === 'never' ? null : parseInt(newKeyExpiry);
+      
+      const res = await fetch('/api/v1/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newKeyName,
+          expiresInDays,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setCreatedKey(data.apiKey.key);
+        setNewKeyName('');
+        setNewKeyExpiry('never');
+        fetchApiKeys();
+      } else {
+        alert('Failed to create API key');
+      }
+    } catch (error) {
+      console.error('Error creating API key:', error);
+      alert('Failed to create API key');
+    } finally {
+      setCreatingKey(false);
+    }
+  };
+
+  const handleDeleteApiKey = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/v1/api-keys/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        fetchApiKeys();
+      } else {
+        alert('Failed to delete API key');
+      }
+    } catch (error) {
+      console.error('Error deleting API key:', error);
+      alert('Failed to delete API key');
+    }
+  };
+
+  const handleToggleApiKey = async (id: string, isActive: boolean) => {
+    try {
+      const res = await fetch(`/api/v1/api-keys/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !isActive }),
+      });
+
+      if (res.ok) {
+        fetchApiKeys();
+      } else {
+        alert('Failed to update API key');
+      }
+    } catch (error) {
+      console.error('Error updating API key:', error);
+      alert('Failed to update API key');
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Copied to clipboard!');
   };
 
   const handleAnalyzeWebsite = async () => {
@@ -386,6 +499,185 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* API Keys Section (Outside form) */}
+      <div className="rounded-2xl border border-border bg-card p-6 mt-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-semibold">API Keys</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage API keys for programmatic access to your content
+            </p>
+          </div>
+          <button
+            onClick={() => setShowNewKeyModal(true)}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+          >
+            Create API Key
+          </button>
+        </div>
+
+        {apiKeys.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <p>No API keys yet. Create one to get started.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {apiKeys.map((key) => (
+              <div
+                key={key.id}
+                className="flex items-center justify-between p-4 border border-border rounded-lg"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-medium">{key.name}</h3>
+                    {!key.isActive && (
+                      <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">
+                        Inactive
+                      </span>
+                    )}
+                    {key.expiresAt && new Date(key.expiresAt) < new Date() && (
+                      <span className="px-2 py-0.5 text-xs bg-red-100 text-red-600 rounded">
+                        Expired
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <span className="font-mono">{key.key}</span>
+                    {key.lastUsedAt && (
+                      <span>Last used: {new Date(key.lastUsedAt).toLocaleDateString()}</span>
+                    )}
+                    {key.expiresAt && (
+                      <span>Expires: {new Date(key.expiresAt).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggleApiKey(key.id, key.isActive)}
+                    className="px-3 py-1 text-sm border border-border rounded hover:bg-muted"
+                  >
+                    {key.isActive ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteApiKey(key.id)}
+                    className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-sm font-semibold text-blue-900 mb-2">Using API Keys</h3>
+          <p className="text-xs text-blue-800 mb-2">
+            Include your API key in the Authorization header:
+          </p>
+          <code className="block text-xs bg-white px-3 py-2 rounded border border-blue-200 font-mono">
+            Authorization: Bearer YOUR_API_KEY
+          </code>
+          <p className="text-xs text-blue-800 mt-2">
+            API endpoint: <span className="font-mono">/api/v1/content/*</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Create API Key Modal */}
+      {showNewKeyModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold mb-4">Create API Key</h3>
+            
+            {createdKey ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800 mb-2 font-medium">
+                    API Key Created Successfully!
+                  </p>
+                  <p className="text-xs text-green-700 mb-3">
+                    Make sure to copy your API key now. You won't be able to see it again!
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-green-200 font-mono break-all">
+                      {createdKey}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(createdKey)}
+                      className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm whitespace-nowrap"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setCreatedKey(null);
+                    setShowNewKeyModal(false);
+                  }}
+                  className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Key Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg"
+                    placeholder="e.g., Production API Key"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Expiration
+                  </label>
+                  <select
+                    value={newKeyExpiry}
+                    onChange={(e) => setNewKeyExpiry(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg"
+                  >
+                    <option value="never">Never</option>
+                    <option value="30">30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="365">1 year</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowNewKeyModal(false);
+                      setNewKeyName('');
+                      setNewKeyExpiry('never');
+                    }}
+                    disabled={creatingKey}
+                    className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateApiKey}
+                    disabled={creatingKey || !newKeyName.trim()}
+                    className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {creatingKey ? 'Creating...' : 'Create'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
