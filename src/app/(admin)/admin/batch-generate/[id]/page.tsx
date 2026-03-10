@@ -188,7 +188,7 @@ export default function BatchStatusPage() {
                 }`}>
                   {item.status}
                 </span>
-                {item.articleId && (
+                {item.articleId && item.status === 'COMPLETE' && isComplete && (
                   <Link
                     href={`/admin/articles/${item.articleId}`}
                     className="text-sm text-primary hover:underline"

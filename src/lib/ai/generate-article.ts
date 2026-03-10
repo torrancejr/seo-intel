@@ -93,7 +93,7 @@ export async function generateArticle({
         content: `${prompt}
 
 CRITICAL FINAL INSTRUCTION: 
-- Write the COMPLETE 2,500-3,500 word article
+- Write a COMPLETE article of 1,500-2,000 words (HARD MAXIMUM: 2,000 words — stop writing at 2,000)
 - Do NOT use ANY placeholders like "[Content continues...]"  
 - Write EVERY section and paragraph in FULL
 - This must be a COMPLETE, PUBLISHABLE article
@@ -155,11 +155,6 @@ Begin writing the full article now:`
     if (actualWordCount < 1200) {
       console.error('❌ Article too short:', actualWordCount, 'words');
       throw new Error(`Article is too short (${actualWordCount} words). Minimum 1,200 words required. Please try regenerating.`);
-    }
-    
-    if (actualWordCount > 2500) {
-      console.error('❌ Article too long:', actualWordCount, 'words');
-      throw new Error(`Article is too long (${actualWordCount} words). Maximum 2,500 words allowed. The AI generated too much content. Please try regenerating.`);
     }
     
     if (actualWordCount > 2000) {

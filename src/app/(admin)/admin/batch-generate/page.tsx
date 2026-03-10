@@ -345,7 +345,7 @@ export default function BatchGeneratePage() {
                       )}
                     </div>
                   </div>
-                  {item.articleId && (
+                  {item.articleId && item.status === 'COMPLETE' && batch.status !== 'IN_PROGRESS' && (
                     <a
                       href={`/admin/articles/${item.articleId}`}
                       className="text-sm text-primary hover:underline"

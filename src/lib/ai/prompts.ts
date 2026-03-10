@@ -10,6 +10,10 @@ Title: {articleTitle}
 Topic: {topicName}
 Target City: {cityName}, {stateCode}
 
+IMPORTANT: The article MUST begin with this exact H1 heading:
+# {articleTitle}
+Do not rewrite or shorten the title. Use it word-for-word as the first line of the article.
+
 ## City-Specific Data for {cityName}, {stateCode}
 Population: {population}
 Metro Area Population: {metroPopulation}
