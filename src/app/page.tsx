@@ -127,9 +127,8 @@ export default function HomePage() {
             </p>
             <div className="flex items-center justify-center gap-12 flex-wrap opacity-60">
               <div className="text-2xl font-bold">CaseIntel</div>
-              <div className="text-2xl font-bold">LegalTech Co</div>
-              <div className="text-2xl font-bold">RealEstate Pro</div>
-              <div className="text-2xl font-bold">FinanceHub</div>
+              <div className="text-2xl font-bold">NEXCLean</div>
+              <div className="text-2xl font-bold">WIXEN Company</div>
             </div>
           </motion.div>
         </div>

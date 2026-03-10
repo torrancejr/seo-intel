@@ -186,24 +186,28 @@ export default function GeneratePage() {
               </select>
             </div>
 
-            {/* Custom Instructions */}
+            {/* Article Outline */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Custom Instructions (Optional)
+                Article Outline <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={customInstructions}
                 onChange={(e) => setCustomInstructions(e.target.value)}
-                placeholder="Add any specific requirements or focus areas..."
-                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[100px]"
+                placeholder="Provide an outline of what the article should cover (e.g., key points, sections, specific information to include)..."
+                className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[120px]"
                 disabled={generating}
+                required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Describe the structure and main topics the article should cover
+              </p>
             </div>
 
             {/* Generate Button */}
             <button
               onClick={handleGenerate}
-              disabled={generating || !selectedTopic || !selectedCity}
+              disabled={generating || !selectedTopic || !selectedCity || !customInstructions.trim()}
               className="w-full bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {generating ? 'Generating...' : 'Generate Article'}

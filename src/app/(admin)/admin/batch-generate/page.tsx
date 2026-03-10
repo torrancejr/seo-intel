@@ -110,6 +110,15 @@ export default function BatchGeneratePage() {
       });
       return;
     }
+    if (!customInstructions.trim()) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Article Outline Required',
+        message: 'Please provide an outline of what the articles should cover',
+        variant: 'error',
+      });
+      return;
+    }
 
     setIsGenerating(true);
     try {
@@ -241,19 +250,23 @@ export default function BatchGeneratePage() {
             </p>
           </div>
 
-          {/* Custom Instructions */}
+          {/* Article Outline */}
           <div className="rounded-2xl border border-border bg-card p-6">
             <h2 className="text-lg font-semibold mb-4">
-              Step 3: Custom Instructions (Optional)
+              Step 3: Article Outline <span className="text-red-500">*</span>
             </h2>
             <textarea
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="Add any specific instructions for the AI..."
+              placeholder="Provide an outline of what the articles should cover (e.g., key points, sections, specific information to include)..."
               className="w-full px-3 py-2 border border-border rounded-lg"
-              rows={4}
+              rows={5}
               disabled={isGenerating}
+              required
             />
+            <p className="text-xs text-muted-foreground mt-2">
+              Describe the structure and main topics the articles should cover
+            </p>
           </div>
 
           {/* Generate Button */}
@@ -267,7 +280,7 @@ export default function BatchGeneratePage() {
               </div>
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating || !selectedTopicId || selectedCityIds.length === 0}
+                disabled={isGenerating || !selectedTopicId || selectedCityIds.length === 0 || !customInstructions.trim()}
                 className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
               >
                 {isGenerating && <Loader2 className="h-4 w-4 animate-spin" />}
