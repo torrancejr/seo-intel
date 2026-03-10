@@ -233,6 +233,9 @@ export default function SignupPage() {
                 <p className="text-xs text-gray-500 mt-1">
                   Your blog will be available at {slug || 'your-slug'}.seointel.io
                 </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  💡 You can add your own custom domain (e.g., blog.yoursite.com) later in Settings
+                </p>
               </div>
 
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
