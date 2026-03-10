@@ -93,7 +93,7 @@ export async function generateArticle({
         content: `${prompt}
 
 CRITICAL FINAL INSTRUCTION: 
-- Write a COMPLETE article of 1,500-2,000 words (HARD MAXIMUM: 2,000 words — stop writing at 2,000)
+- Write a COMPLETE article of 1,500-2,000 words (target max 2,000, absolute ceiling 2,500)
 - Do NOT use ANY placeholders like "[Content continues...]"  
 - Write EVERY section and paragraph in FULL
 - This must be a COMPLETE, PUBLISHABLE article
@@ -157,8 +157,13 @@ Begin writing the full article now:`
       throw new Error(`Article is too short (${actualWordCount} words). Minimum 1,200 words required. Please try regenerating.`);
     }
     
+    if (actualWordCount > 2700) {
+      console.error('❌ Article too long:', actualWordCount, 'words');
+      throw new Error(`Article is too long (${actualWordCount} words). Maximum 2,700 words allowed. Please try regenerating.`);
+    }
+
     if (actualWordCount > 2000) {
-      console.warn('⚠️ Article slightly over target:', actualWordCount, 'words (target: 1,500-2,000)');
+      console.warn('⚠️ Article over target:', actualWordCount, 'words (target: 1,500-2,000, ceiling: 2,700)');
     }
     
     console.log('✅ Article validation passed - Actual word count:', actualWordCount);

@@ -20,14 +20,15 @@ Metro Area Population: {metroPopulation}
 {cityDataDetails}
 
 ## CRITICAL LENGTH REQUIREMENT
-Write EXACTLY 1,500-2,000 words. Count as you write and STOP at 2,000.
+Write 1,500-2,000 words. Count as you write and aim to stop at 2,000.
 - Minimum: 1,500 words
 - Target: 1,750 words  
-- MAXIMUM: 2,000 words (STOP WRITING HERE)
+- Soft cap: 2,000 words (finish your current thought and wrap up)
+- Hard ceiling: 2,700 words (articles exceeding this will be rejected)
 - Each section: 250-300 words
 - Each paragraph: 3-4 sentences (60-80 words)
 
-Write complete sections but STOP when you reach 2,000 words total. Better to have 4 complete sections than 5 incomplete ones.
+Write complete sections but wrap up when you approach 2,000 words. Better to have 4 complete sections than 5 incomplete ones.
 
 ## Writing Style Reference
 Write in the style of authoritative professional publications like Legal AI Insider or Harvard Business Review:
@@ -41,7 +42,7 @@ Write in the style of authoritative professional publications like Legal AI Insi
 
 ## Content Requirements
 
-**Length**: 1,500-2,000 words (comprehensive content with substantial detail)
+**Length**: 1,500-2,000 words (target; 2,700 absolute maximum)
 
 **Structure**:
 - Opening (2 paragraphs) - 150 words
