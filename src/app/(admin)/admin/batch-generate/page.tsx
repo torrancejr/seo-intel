@@ -258,9 +258,9 @@ export default function BatchGeneratePage() {
             <textarea
               value={customInstructions}
               onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="Provide an outline of what the articles should cover (e.g., key points, sections, specific information to include)..."
-              className="w-full px-3 py-2 border border-border rounded-lg"
-              rows={5}
+              placeholder={`Title: [Article title or leave blank to auto-generate]\nAudience: [Who is this for? e.g. small business owners, homeowners, patients]\nTone: [e.g. professional, conversational, authoritative]\nKey Sections:\n  1. [Section 1 topic]\n  2. [Section 2 topic]\n  3. [Section 3 topic]\nKey Points to Cover:\n  - [Main point or argument]\n  - [Statistic or fact to include]\n  - [Call to action or takeaway]\nKeywords: [SEO keywords to weave in naturally]`}
+              className="w-full px-3 py-2 border border-border rounded-lg font-mono text-sm"
+              rows={10}
               disabled={isGenerating}
               required
             />
