@@ -93,7 +93,7 @@ export async function generateArticle({
         content: `${prompt}
 
 CRITICAL FINAL INSTRUCTION: 
-- Write a COMPLETE article of 1,500-2,000 words (target max 2,000, absolute ceiling 2,500)
+- Write a COMPLETE article of 1,500-2,000 words (target max 2,000, absolute ceiling 2,700)
 - Do NOT use ANY placeholders like "[Content continues...]"  
 - Write EVERY section and paragraph in FULL
 - This must be a COMPLETE, PUBLISHABLE article
