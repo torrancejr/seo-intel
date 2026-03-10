@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 interface TenantSettings {
   id: string;
   name: string;
+  domain: string | null;
+  customDomains: string[];
   websiteUrl: string | null;
   businessDescription: string | null;
   logoUrl: string | null;
@@ -17,6 +19,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
+  const [domain, setDomain] = useState('');
+  const [customDomains, setCustomDomains] = useState<string[]>([]);
+  const [newDomain, setNewDomain] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [businessDescription, setBusinessDescription] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -34,6 +39,8 @@ export default function SettingsPage() {
         const data = await res.json();
         setSettings(data.tenant);
         setName(data.tenant.name || '');
+        setDomain(data.tenant.domain || '');
+        setCustomDomains(data.tenant.customDomains || []);
         setWebsiteUrl(data.tenant.websiteUrl || '');
         setBusinessDescription(data.tenant.businessDescription || '');
         setLogoUrl(data.tenant.logoUrl || '');
@@ -56,6 +63,8 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
+          domain,
+          customDomains,
           websiteUrl,
           businessDescription,
           logoUrl,
@@ -74,6 +83,20 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAddDomain = () => {
+    if (!newDomain.trim()) return;
+    if (customDomains.includes(newDomain.trim())) {
+      alert('Domain already added');
+      return;
+    }
+    setCustomDomains([...customDomains, newDomain.trim()]);
+    setNewDomain('');
+  };
+
+  const handleRemoveDomain = (domainToRemove: string) => {
+    setCustomDomains(customDomains.filter(d => d !== domainToRemove));
   };
 
   const handleAnalyzeWebsite = async () => {
@@ -260,6 +283,86 @@ export default function SettingsPage() {
                 >
                   /blog
                 </a>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Custom Domains */}
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <h2 className="text-xl font-semibold mb-6">Custom Domains</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Primary Domain
+              </label>
+              <input
+                type="text"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg"
+                placeholder="blog.yourdomain.com"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Your main custom domain for the blog
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Additional Domains
+              </label>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  value={newDomain}
+                  onChange={(e) => setNewDomain(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddDomain())}
+                  className="flex-1 px-3 py-2 border border-border rounded-lg"
+                  placeholder="another-domain.com"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddDomain}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                >
+                  Add
+                </button>
+              </div>
+              {customDomains.length > 0 && (
+                <div className="space-y-2">
+                  {customDomains.map((d) => (
+                    <div
+                      key={d}
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    >
+                      <span className="text-sm font-mono">{d}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDomain(d)}
+                        className="text-sm text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Add multiple domains that should point to your blog. Make sure to configure DNS records for each domain.
+              </p>
+            </div>
+
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">DNS Configuration</h3>
+              <p className="text-xs text-blue-800 mb-2">
+                For each custom domain, add a CNAME record pointing to:
+              </p>
+              <code className="block text-xs bg-white px-3 py-2 rounded border border-blue-200 font-mono">
+                cname.vercel-dns.com
+              </code>
+              <p className="text-xs text-blue-800 mt-2">
+                Or if using an apex domain (no subdomain), use A records pointing to Vercel's IP addresses.
               </p>
             </div>
           </div>

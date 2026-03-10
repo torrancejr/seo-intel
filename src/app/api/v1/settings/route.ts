@@ -14,8 +14,11 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        domain: true,
+        customDomains: true,
         websiteUrl: true,
         businessDescription: true,
+        businessContext: true,
         logoUrl: true,
       },
     });
@@ -41,13 +44,15 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, websiteUrl, businessDescription, logoUrl } =
+    const { name, domain, customDomains, websiteUrl, businessDescription, logoUrl } =
       await request.json();
 
     const tenant = await db.tenant.update({
       where: { id: session.user.tenantId },
       data: {
         name,
+        domain: domain || null,
+        customDomains: customDomains || [],
         websiteUrl,
         businessDescription,
         logoUrl,

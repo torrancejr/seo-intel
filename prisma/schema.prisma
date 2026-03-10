@@ -76,7 +76,8 @@ model Tenant {
   id                  String         @id @default(cuid())
   name                String
   slug                String         @unique
-  domain              String?
+  domain              String?        @unique
+  customDomains       String[]       @default([])
   websiteUrl          String?
   businessDescription String?        @db.Text
   businessContext     Json?
