@@ -42,10 +42,10 @@ function getBedrockClient() {
   return bedrockClientInstance;
 }
 
-export const AI_MODEL = 
-  getAIProvider() === 'bedrock' 
-    ? process.env.BEDROCK_BLOG_MODEL || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0' // Claude Sonnet 4.5 (inference profile)
-    : 'claude-3-5-sonnet-20241022';
+export const AI_MODEL =
+  getAIProvider() === 'bedrock'
+    ? process.env.BEDROCK_BLOG_MODEL || 'us.anthropic.claude-3-5-haiku-20241022-v1:0' // Claude 3.5 Haiku (testing)
+    : 'claude-3-5-haiku-20241022';
 
 export const AI_MAX_TOKENS = 5000; // Further reduced to strictly constrain to ~1,500-2,000 words
 export const AI_TEMPERATURE = 0.7; // Higher temperature for more creative, longer output
@@ -64,6 +64,74 @@ interface GenerateOptions {
 
 interface GenerateResponse {
   content: Array<{ type: string; text?: string }>;
+}
+
+interface StreamCallbacks {
+  onText: (text: string) => void;
+  onDone: (fullText: string) => void;
+  onError: (error: Error) => void;
+}
+
+export async function generateContentStream(
+  options: GenerateOptions,
+  callbacks: StreamCallbacks
+): Promise<void> {
+  const AI_PROVIDER = getAIProvider();
+
+  if (AI_PROVIDER === 'bedrock') {
+    const { InvokeModelWithResponseStreamCommand } = await import('@aws-sdk/client-bedrock-runtime');
+    const bedrockClient = getBedrockClient();
+
+    const payload = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: options.max_tokens,
+      messages: options.messages,
+      temperature: options.temperature || 1.0,
+    };
+
+    const command = new InvokeModelWithResponseStreamCommand({
+      modelId: options.model,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify(payload),
+    });
+
+    const response = await bedrockClient.send(command);
+    let fullText = '';
+
+    if (response.body) {
+      for await (const event of response.body) {
+        if (event.chunk?.bytes) {
+          const chunk = JSON.parse(new TextDecoder().decode(event.chunk.bytes));
+          if (chunk.type === 'content_block_delta' && chunk.delta?.text) {
+            fullText += chunk.delta.text;
+            callbacks.onText(chunk.delta.text);
+          }
+        }
+      }
+    }
+
+    callbacks.onDone(fullText);
+  } else {
+    const anthropic = getAnthropicClient();
+
+    const stream = anthropic.messages.stream({
+      model: options.model,
+      max_tokens: options.max_tokens,
+      messages: options.messages,
+      temperature: options.temperature || 1.0,
+    });
+
+    let fullText = '';
+
+    stream.on('text', (text) => {
+      fullText += text;
+      callbacks.onText(text);
+    });
+
+    await stream.finalMessage();
+    callbacks.onDone(fullText);
+  }
 }
 
 export async function generateContent(options: GenerateOptions): Promise<GenerateResponse> {
